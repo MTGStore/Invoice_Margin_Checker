@@ -871,37 +871,50 @@
             
             try {
                 const htmlBody = generateHtmlEmailBody(red, yellow, green, data);
-                const payload = {
-                    to: emailTo,
-                    subject: subject,
-                    body: 'See HTML email.',
-                    htmlBody: htmlBody
-                };
-                
-                // Apps Script requires GET with encoded params due to CORS restrictions
-                const params = new URLSearchParams({
-                    to: payload.to,
-                    subject: payload.subject,
-                    body: payload.body,
-                    htmlBody: payload.htmlBody
+
+                // Use hidden iframe POST — avoids CORS block AND URL length limits
+                await new Promise((resolve) => {
+                    const iframe = document.createElement('iframe');
+                    iframe.name = 'emailFrame_' + Date.now();
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = APPS_SCRIPT_URL;
+                    form.target = iframe.name;
+                    form.style.display = 'none';
+
+                    const fields = {
+                        to: emailTo,
+                        subject: subject,
+                        body: 'See HTML email.',
+                        htmlBody: htmlBody
+                    };
+
+                    Object.entries(fields).forEach(([key, val]) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = val;
+                        form.appendChild(input);
+                    });
+
+                    document.body.appendChild(form);
+                    form.submit();
+
+                    // Apps Script processes async — wait 5s then confirm
+                    setTimeout(() => {
+                        form.remove();
+                        iframe.remove();
+                        resolve();
+                    }, 5000);
                 });
 
-                const response = await fetch(APPS_SCRIPT_URL + '?' + params.toString(), {
-                    method: 'GET',
-                    redirect: 'follow'
-                });
+                showStatus(`✅ Email sent to ${emailTo}! Check your inbox.`, 'success');
 
-                const text = await response.text();
-                let result;
-                try { result = JSON.parse(text); } catch(e) { result = { success: true }; }
-
-                if (result.success !== false) {
-                    showStatus(`✅ Email sent successfully to ${emailTo}`, 'success');
-                } else {
-                    showStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-                }
             } catch (error) {
-                showStatus(`❌ Error sending email: ${error.message}`, 'error');
+                showStatus(`❌ Error: ${error.message}`, 'error');
                 console.error(error);
             } finally {
                 emailBtn.disabled = false;
