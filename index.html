@@ -920,7 +920,11 @@ PRIORITY ACTION ITEMS (Top 10):
             
             const actionItems = data.filter(d => d.flag !== 'green').slice(0, 10);
             actionItems.forEach(item => {
-                body += `\n✓ ${item.action}\n  Product: ${item.product}\n  Current: $${item.retail} (${item.currentMargin}%)\n  Suggested: $${item.suggestedRetail}\n  Department: ${item.dept}\n`;
+                // Calculate what margin% the suggested price achieves
+                const suggestedMarginPct = item.suggestedRetail !== '—' && parseFloat(item.cost) > 0
+                    ? (((parseFloat(item.suggestedRetail) - parseFloat(item.cost)) / parseFloat(item.suggestedRetail)) * 100).toFixed(1)
+                    : '—';
+                body += `\n✓ ${item.action}\n  Product: ${item.product}\n  Current: $${item.retail} (${parseFloat(item.currentMargin).toFixed(1)}%)\n  Suggested: $${item.suggestedRetail} (${suggestedMarginPct}%)\n  Department: ${item.dept}\n`;
             });
             
             if (data.filter(d => d.flag !== 'green').length > 10) {
