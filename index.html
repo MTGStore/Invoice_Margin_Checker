@@ -536,8 +536,8 @@
     </div>
     
     <script>
-        // ⚠️ REPLACE THIS WITH YOUR GOOGLE APPS SCRIPT URL
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/d/YOUR_DEPLOYMENT_ID/userwithscript';
+        // Google Apps Script Deployment URL (Email Backend)
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwqdG0ZFUavZmpM8UT7pke3u7NhCPVcXWQD-LJKRjPsOKvwwiTsDO3je5J9tyEVZN5LVw/exec';
         
         // Margin Guidelines
         const MARGINS = {
@@ -874,22 +874,17 @@
             let body = `DAILY MARGIN REPORT - ${new Date().toLocaleDateString()}
 
 SUMMARY:
-• Items Below Minimum (Need Price Increase): ${red}
-• Items Above Maximum (Need Price Decrease): ${yellow}
-• Items Within Target: ${green}
-• Total Items Analyzed: ${allData.length}
+- Items Below Minimum (Need Price Increase): ${red}
+- Items Above Maximum (Need Price Decrease): ${yellow}
+- Items Within Target: ${green}
+- Total Items Analyzed: ${allData.length}
 
 PRIORITY ACTION ITEMS (Top 10):
 `;
             
             const actionItems = data.filter(d => d.flag !== 'green').slice(0, 10);
             actionItems.forEach(item => {
-                body += `\n✓ ${item.action}
-  Product: ${item.product}
-  Current: $${item.retail} (${item.currentMargin}%)
-  Suggested: $${item.suggestedRetail}
-  Department: ${item.dept}
-`;
+                body += `\n✓ ${item.action}\n  Product: ${item.product}\n  Current: $${item.retail} (${item.currentMargin}%)\n  Suggested: $${item.suggestedRetail}\n  Department: ${item.dept}\n`;
             });
             
             if (data.filter(d => d.flag !== 'green').length > 10) {
