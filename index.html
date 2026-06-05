@@ -536,98 +536,78 @@
     </div>
     
     <script>
-        // Google Apps Script Deployment URL (Email Backend)
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwqdG0ZFUavZmpM8UT7pke3u7NhCPVcXWQD-LJKRjPsOKvwwiTsDO3je5J9tyEVZN5LVw/exec';
-        
-        // Load margins from external JSON file
-        let MARGINS = {};
-        
-        async function loadMargins() {
-            try {
-                const response = await fetch('margins.json');
-                const data = await response.json();
-                MARGINS = data.margins;
-                showStatus('✅ Margins loaded successfully', 'success');
-            } catch (error) {
-                showStatus('⚠️ Warning: Could not load margins.json, using defaults', 'info');
-                loadDefaultMargins();
-            }
-        }
-        
-        function loadDefaultMargins() {
-            MARGINS = {
-                'Single Beer': { min: 25, max: 30 },
-                'PKG Beer': { min: 20, max: 25 },
-                'Wine': { min: 20, max: 25 },
-                'Energy drink': { min: 38, max: 45 },
-                'Non Alcohol': { min: 36, max: 44 },
-                'Soda': { min: 36, max: 44 },
-                'Water': { min: 42, max: 48 },
-                'Candy': { min: 35, max: 42 },
-                'Chips/Salty': { min: 35, max: 42 },
-                'Bakery': { min: 35, max: 42 },
-                'Isotonic': { min: 38, max: 45 },
-                'Frozen/Ice Cream': { min: 38, max: 45 },
-                'TH Non Alh': { min: 20, max: 25 },
-                'Non Tax Groc': { min: 33, max: 38 },
-                'Tax Groc': { min: 33, max: 38 },
-                'Cig Pack': { min: 8, max: 15 },
-                'Cig Carton': { min: 7, max: 10 },
-                'Cigar/Leaf': { min: 26, max: 35 },
-                'E-Cigs': { min: 18, max: 25 },
-                'Dip Can': { min: 18, max: 23 },
-                'Dip Roll/Tobacco': { min: 14, max: 18 },
-                'Nico Pouches': { min: 18, max: 24 },
-                'Novelty-Other': { min: 50, max: 60 },
-                'Novelty-Vape': { min: 45, max: 55 },
-                'Novelty-Merch': { min: 50, max: 60 },
-                'Health Hygiene': { min: 38, max: 44 },
-                'Auto': { min: 33, max: 38 }
-            };
-        }
-        
-        // Load margins when page loads
-        window.addEventListener('load', loadMargins);
-        
+
+        let MARGINS = {
+            '1Candy':              { min: 35, max: 42 },
+            '1Chips/Salty':        { min: 35, max: 42 },
+            '1Bakery':             { min: 35, max: 42 },
+            '1Soda':               { min: 36, max: 44 },
+            '1Non ALH':            { min: 36, max: 44 },
+            '1Isotonic':           { min: 38, max: 45 },
+            '1Energy':             { min: 38, max: 45 },
+            '1Water/FL Water':     { min: 42, max: 48 },
+            '1Frozen / Ice Cream': { min: 37, max: 45 },
+            '1TH Non Alh':         { min: 20, max: 25 },
+            '1Non Tax Groc':       { min: 33, max: 42 },
+            '1Ice Bag':            { min: 35, max: 45 },
+            '2Tax Groc':           { min: 33, max: 42 },
+            '2Cig Pack':           { skip: true },
+            '2Cig Carton':         { skip: true },
+            '2Cigar/Leaf':         { min: 26, max: 35 },
+            '2E-Cigs':             { skip: true },
+            '2Dip Can':            { skip: true },
+            '2Dip Roll / Tobacco': { min: 14, max: 18 },
+            '2Nico Pouches':       { skip: true },
+            '2Beer-Single':        { min: 25, max: 30 },
+            '2Beer-PKG':           { min: 20, max: 25 },
+            '2Wine':               { min: 20, max: 25 },
+            '2Novelty-Vape':       { min: 45, max: 55 },
+            '2Novelty-Other':      { min: 45, max: 55 },
+            '2Novelty-Merch':      { min: 45, max: 55 },
+            '2Health Hygiene':     { min: 38, max: 44 },
+            '2Auto':               { min: 33, max: 38 },
+            '2Supplies':           { min: 27, max: 35 },
+            '3Hot Coffee':         { min: 38, max: 45 },
+            '3Hot Food':           { min: 1,  max: 2  },
+            '3Slush-Fountain':     { min: 1,  max: 2  },
+            '4Propane/Firewood':   { min: 1,  max: 2  },
+            '7Scratch Off':        { skip: true },
+            '7Online Lotto':       { skip: true },
+            '7Lotto Winner':       { skip: true }
+        };
+
+        window.addEventListener('load', () => {
+            showStatus('✅ MTG-5 margins loaded — 37 departments ready', 'success');
+        });
+
         let allData = [];
-        
-        // Setup upload zone
+
         const uploadZone = document.getElementById('uploadZone');
         const fileInput = document.getElementById('fileInput');
-        
+
         uploadZone.addEventListener('click', () => fileInput.click());
-        
-        uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.classList.add('dragover');
-        });
-        
-        uploadZone.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('dragover');
-        });
-        
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
         uploadZone.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadZone.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length) handleFileUpload(files[0]);
+            if (e.dataTransfer.files.length) handleFileUpload(e.dataTransfer.files[0]);
         });
-        
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length) handleFileUpload(e.target.files[0]);
         });
-        
+
         function showStatus(message, type = 'info') {
             const statusEl = document.getElementById('statusMessage');
             statusEl.textContent = message;
             statusEl.className = `status-message show ${type}`;
             setTimeout(() => statusEl.classList.remove('show'), 5000);
         }
-        
+
         function handleFileUpload(file) {
             const loading = document.getElementById('loading');
             loading.classList.add('show');
-            
             const reader = new FileReader();
             reader.onload = (event) => {
                 try {
@@ -635,11 +615,7 @@
                     const workbook = XLSX.read(data, { type: 'array' });
                     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonData = XLSX.utils.sheet_to_json(worksheet);
-                    
-                    if (jsonData.length === 0) {
-                        throw new Error('No data found in file');
-                    }
-                    
+                    if (jsonData.length === 0) throw new Error('No data found in file');
                     processData(jsonData);
                     loading.classList.remove('show');
                     showStatus(`✅ Loaded ${jsonData.length} items`, 'success');
@@ -651,250 +627,197 @@
             };
             reader.readAsArrayBuffer(file);
         }
-        
+
         function processData(jsonData) {
             allData = jsonData.map((row, idx) => {
                 const deptName = row.DeptName || row.Department || 'Unknown';
-                const marginTarget = MARGINS[deptName] || { min: 25, max: 35 };
-                
+                const marginTarget = MARGINS[deptName] || null;
+
                 const caseCost = parseFloat(row.unitCost) || 0;
                 const saleQty = parseFloat(row.SaleQty) || 1;
-                const costPerUnit = caseCost / saleQty;  // ✅ unitCost ÷ SaleQty = per-unit cost
+                const costPerUnit = caseCost / saleQty;
                 const salePrice = parseFloat(row.SalePrice) || 0;
-                // Recalculate margin using true per-unit cost
                 const currentMargin = salePrice > 0 ? ((salePrice - costPerUnit) / salePrice) * 100 : 0;
 
-                const midMargin = (marginTarget.min + marginTarget.max) / 2 / 100;
-                const suggestedPrice = costPerUnit / (1 - midMargin);
-                
-                let flag = 'green';
-                let action = '✅ OK';
-                
-                if (currentMargin < marginTarget.min) {
+                if (marginTarget && marginTarget.skip) {
+                    return {
+                        id: idx,
+                        upc: row.SaleItemScanCode || '',
+                        product: row.SaleItemName || row.ItemName || 'Unknown',
+                        dept: deptName,
+                        caseCost: caseCost.toFixed(2),
+                        saleQty: saleQty,
+                        cost: costPerUnit.toFixed(2),
+                        retail: salePrice.toFixed(2),
+                        currentMargin: currentMargin.toFixed(2),
+                        minTarget: '—', maxTarget: '—',
+                        suggestedRetail: '—',
+                        flag: 'skip', action: '⬜ SKIP'
+                    };
+                }
+
+                const target = marginTarget || { min: 25, max: 35 };
+                const midMargin = (target.min + target.max) / 2 / 100;
+                const suggestedPrice = costPerUnit > 0 ? costPerUnit / (1 - midMargin) : 0;
+
+                let flag = 'green', action = '✅ OK';
+                if (currentMargin < target.min) {
                     flag = 'red';
                     action = `🔴 RAISE to $${suggestedPrice.toFixed(2)}`;
-                } else if (currentMargin > marginTarget.max) {
+                } else if (currentMargin > target.max) {
                     flag = 'yellow';
                     action = `🟡 LOWER to $${suggestedPrice.toFixed(2)}`;
                 }
-                
+
                 return {
                     id: idx,
                     upc: row.SaleItemScanCode || '',
-                    product: row.SaleItemName || row.ItemName || row.Product || 'Unknown',
+                    product: row.SaleItemName || row.ItemName || 'Unknown',
                     dept: deptName,
-                    category: row.CategoryName || 'N/A',
                     caseCost: caseCost.toFixed(2),
                     saleQty: saleQty,
-                    cost: costPerUnit.toFixed(2),       // per-unit cost
+                    cost: costPerUnit.toFixed(2),
                     retail: salePrice.toFixed(2),
                     currentMargin: currentMargin.toFixed(2),
-                    minTarget: marginTarget.min,
-                    maxTarget: marginTarget.max,
-                    suggestedRetail: suggestedPrice.toFixed(2),
-                    flag: flag,
-                    action: action
+                    minTarget: target.min, maxTarget: target.max,
+                    suggestedRetail: suggestedPrice > 0 ? suggestedPrice.toFixed(2) : '—',
+                    flag: flag, action: action
                 };
             });
-            
+
             renderResults();
             document.getElementById('resultsSection').classList.add('show');
             document.getElementById('emailSection').classList.add('show');
         }
-        
+
         function renderResults() {
             renderSummary();
             renderMarginGuide();
             renderTable();
             updateFilters();
         }
-        
+
         function renderSummary() {
-            const red = allData.filter(d => d.flag === 'red').length;
+            const red    = allData.filter(d => d.flag === 'red').length;
             const yellow = allData.filter(d => d.flag === 'yellow').length;
-            const green = allData.filter(d => d.flag === 'green').length;
-            
-            const html = `
-                <div class="card red">
-                    <div class="card-label">BELOW MIN (Raise Price)</div>
-                    <div class="card-value">${red}</div>
-                </div>
-                <div class="card yellow">
-                    <div class="card-label">ABOVE MAX (Lower Price)</div>
-                    <div class="card-value">${yellow}</div>
-                </div>
-                <div class="card green">
-                    <div class="card-label">WITHIN TARGET</div>
-                    <div class="card-value">${green}</div>
-                </div>
-                <div class="card">
-                    <div class="card-label">TOTAL ITEMS</div>
-                    <div class="card-value">${allData.length}</div>
-                </div>
-            `;
-            document.getElementById('summaryCards').innerHTML = html;
+            const green  = allData.filter(d => d.flag === 'green').length;
+            const skip   = allData.filter(d => d.flag === 'skip').length;
+            document.getElementById('summaryCards').innerHTML = `
+                <div class="card red"><div class="card-label">🔴 RAISE PRICE</div><div class="card-value">${red}</div></div>
+                <div class="card yellow"><div class="card-label">🟡 LOWER PRICE</div><div class="card-value">${yellow}</div></div>
+                <div class="card green"><div class="card-label">✅ ON TARGET</div><div class="card-value">${green}</div></div>
+                <div class="card"><div class="card-label">⬜ SKIPPED</div><div class="card-value">${skip}</div></div>
+                <div class="card"><div class="card-label">📦 TOTAL ITEMS</div><div class="card-value">${allData.length}</div></div>`;
         }
-        
+
         function renderMarginGuide() {
             let html = '';
             Object.entries(MARGINS).forEach(([dept, targets]) => {
-                html += `
-                    <div class="margin-item">
-                        <strong>${dept}</strong>
-                        <span>${targets.min}% - ${targets.max}%</span>
-                    </div>
-                `;
+                if (targets.skip) {
+                    html += `<div class="margin-item" style="opacity:0.4"><strong>${dept}</strong><span>SKIP</span></div>`;
+                } else {
+                    html += `<div class="margin-item"><strong>${dept}</strong><span>${targets.min}% – ${targets.max}%</span></div>`;
+                }
             });
             document.getElementById('marginGuide').innerHTML = html;
         }
-        
+
         function getFilteredData() {
-            const showRed = document.getElementById('filterRed').checked;
+            const showRed    = document.getElementById('filterRed').checked;
             const showYellow = document.getElementById('filterYellow').checked;
-            const showGreen = document.getElementById('filterGreen').checked;
-            
+            const showGreen  = document.getElementById('filterGreen').checked;
             return allData.filter(d => {
-                if (d.flag === 'red' && showRed) return true;
+                if (d.flag === 'skip') return false;
+                if (d.flag === 'red'    && showRed)    return true;
                 if (d.flag === 'yellow' && showYellow) return true;
-                if (d.flag === 'green' && showGreen) return true;
+                if (d.flag === 'green'  && showGreen)  return true;
                 return false;
             });
         }
-        
+
         function renderTable() {
             const data = getFilteredData();
-            
-            let html = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>📦 Product</th>
-                            <th>UPC</th>
-                            <th>Dept</th>
-                            <th>Case Cost</th>
-                            <th>Units/Case</th>
-                            <th>Unit Cost</th>
-                            <th>Retail $</th>
-                            <th>Margin %</th>
-                            <th>Min%</th>
-                            <th>Max%</th>
-                            <th>Suggested $</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            
+            let html = `<table>
+                <thead><tr>
+                    <th>📦 Product</th><th>UPC</th><th>Dept</th>
+                    <th>Case Cost</th><th>Units/Case</th><th>Unit Cost</th>
+                    <th>Retail $</th><th>Margin %</th><th>Min%</th><th>Max%</th>
+                    <th>Suggested $</th><th>Action</th>
+                </tr></thead><tbody>`;
             data.forEach(item => {
-                html += `
-                    <tr>
-                        <td>${item.product}</td>
-                        <td>${item.upc}</td>
-                        <td>${item.dept}</td>
-                        <td style="color:#888">$${item.caseCost}</td>
-                        <td style="color:#888;text-align:center">${item.saleQty}</td>
-                        <td><strong>$${item.cost}</strong></td>
-                        <td>$${item.retail}</td>
-                        <td class="flag-${item.flag}">${parseFloat(item.currentMargin).toFixed(1)}%</td>
-                        <td>${item.minTarget}%</td>
-                        <td>${item.maxTarget}%</td>
-                        <td><strong>$${item.suggestedRetail}</strong></td>
-                        <td class="flag-${item.flag}">${item.action}</td>
-                    </tr>
-                `;
+                html += `<tr>
+                    <td>${item.product}</td>
+                    <td>${item.upc}</td>
+                    <td>${item.dept}</td>
+                    <td style="color:#888">$${item.caseCost}</td>
+                    <td style="color:#888;text-align:center">${item.saleQty}</td>
+                    <td><strong>$${item.cost}</strong></td>
+                    <td>$${item.retail}</td>
+                    <td class="flag-${item.flag}">${parseFloat(item.currentMargin).toFixed(1)}%</td>
+                    <td>${item.minTarget}%</td>
+                    <td>${item.maxTarget}%</td>
+                    <td><strong>$${item.suggestedRetail}</strong></td>
+                    <td class="flag-${item.flag}">${item.action}</td>
+                </tr>`;
             });
-            
             html += '</tbody></table>';
-            
             const wrapper = document.querySelector('.table-wrapper');
             wrapper.classList.add('show');
-            wrapper.querySelector('#tableContainer')?.remove();
-            
+            const old = document.getElementById('tableContainer');
+            if (old) old.remove();
             const container = document.createElement('div');
             container.id = 'tableContainer';
             container.innerHTML = html;
             wrapper.insertBefore(container, wrapper.querySelector('.action-buttons'));
         }
-        
+
         function updateFilters() {
-            ['filterRed', 'filterYellow', 'filterGreen'].forEach(id => {
+            ['filterRed','filterYellow','filterGreen'].forEach(id => {
                 document.getElementById(id).addEventListener('change', renderTable);
             });
         }
-        
+
         function exportToExcel() {
             const data = getFilteredData();
             const exportData = data.map(d => ({
-                'UPC': d.upc,
-                'Product': d.product,
-                'Department': d.dept,
-                'Unit Cost': '$' + d.cost,
-                'Current Price': '$' + d.retail,
+                'UPC': d.upc, 'Product': d.product, 'Department': d.dept,
+                'Case Cost': '$'+d.caseCost, 'Units/Case': d.saleQty,
+                'Unit Cost': '$'+d.cost, 'Current Price': '$'+d.retail,
                 'Current Margin %': d.currentMargin,
-                'Min Target %': d.minTarget,
-                'Max Target %': d.maxTarget,
-                'Suggested Price': '$' + d.suggestedRetail,
-                'Action': d.action
+                'Min Target %': d.minTarget, 'Max Target %': d.maxTarget,
+                'Suggested Price': '$'+d.suggestedRetail, 'Action': d.action
             }));
-            
             const workbook = XLSX.utils.book_new();
             const worksheet = XLSX.utils.json_to_sheet(exportData);
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Margin Report');
             XLSX.writeFile(workbook, `margin-report-${new Date().toISOString().split('T')[0]}.xlsx`);
-            
             showStatus('✅ File exported successfully', 'success');
         }
-        
+
         async function sendEmailReport() {
             const emailTo = document.getElementById('emailTo').value || 'mtgstoreOps@gmail.com';
             const subject = document.getElementById('emailSubject').value;
-            
             if (!emailTo.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
                 showStatus('❌ Please enter a valid email address', 'error');
-                document.getElementById('emailTo').focus();
                 return;
             }
-            
-            if (!APPS_SCRIPT_URL.includes('AKfycbwqdG0ZFUavZmpM8UT7pke3u7NhCPVcXWQD')) {
-                showStatus('❌ Email service not configured', 'error');
-                return;
-            }
-            
             const data = getFilteredData();
-            const red = data.filter(d => d.flag === 'red').length;
+            const red    = data.filter(d => d.flag === 'red').length;
             const yellow = data.filter(d => d.flag === 'yellow').length;
-            const green = data.filter(d => d.flag === 'green').length;
-            
+            const green  = data.filter(d => d.flag === 'green').length;
             const emailBtn = document.getElementById('emailBtn');
             emailBtn.disabled = true;
             emailBtn.textContent = '⏳ Sending...';
-            
             try {
                 const htmlBody = generateHtmlEmailBody(red, yellow, green, data);
-                const payload = {
-                    to: emailTo,
-                    subject: subject,
-                    body: 'See HTML email.',
-                    htmlBody: htmlBody
-                };
-                
-                // Apps Script requires GET with encoded params due to CORS restrictions
                 const params = new URLSearchParams({
-                    to: payload.to,
-                    subject: payload.subject,
-                    body: payload.body,
-                    htmlBody: payload.htmlBody
+                    to: emailTo, subject: subject,
+                    body: 'See HTML email.', htmlBody: htmlBody
                 });
-
-                const response = await fetch(APPS_SCRIPT_URL + '?' + params.toString(), {
-                    method: 'GET',
-                    redirect: 'follow'
-                });
-
+                const response = await fetch(APPS_SCRIPT_URL + '?' + params.toString(), { method: 'GET', redirect: 'follow' });
                 const text = await response.text();
                 let result;
                 try { result = JSON.parse(text); } catch(e) { result = { success: true }; }
-
                 if (result.success !== false) {
                     showStatus(`✅ Email sent successfully to ${emailTo}`, 'success');
                 } else {
@@ -902,156 +825,75 @@
                 }
             } catch (error) {
                 showStatus(`❌ Error sending email: ${error.message}`, 'error');
-                console.error(error);
             } finally {
                 emailBtn.disabled = false;
                 emailBtn.textContent = '📧 Send Email Summary';
             }
-        }
-        
-        function generateEmailBody(red, yellow, green, data) {
-            // Plain text fallback (not used for sending but kept for reference)
-            return 'See HTML email.';
         }
 
         function generateHtmlEmailBody(red, yellow, green, data) {
             const date = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
             const actionItems = data.filter(d => d.flag !== 'green');
             const topItems = actionItems.slice(0, 20);
-
             let rows = '';
             topItems.forEach(item => {
                 const suggestedMarginPct = item.suggestedRetail !== '—' && parseFloat(item.cost) > 0
                     ? (((parseFloat(item.suggestedRetail) - parseFloat(item.cost)) / parseFloat(item.suggestedRetail)) * 100).toFixed(1)
                     : '—';
-
                 const isRed = item.flag === 'red';
-                const rowBg    = isRed ? '#fff5f5' : '#fffbf0';
-                const badgeBg  = isRed ? '#e53935' : '#f57c00';
+                const rowBg = isRed ? '#fff5f5' : '#fffbf0';
+                const badgeBg = isRed ? '#e53935' : '#f57c00';
                 const badgeTxt = isRed ? 'RAISE PRICE' : 'LOWER PRICE';
-                const icon     = isRed ? '🔴' : '🟡';
+                const icon = isRed ? '🔴' : '🟡';
                 const currentColor = isRed ? '#c62828' : '#e65100';
-
-                rows += `
-                <tr>
-                  <td style="padding:14px 16px;border-bottom:1px solid #eee;background:${rowBg}">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td>
-                          <span style="display:inline-block;background:${badgeBg};color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:0.5px">${icon} ${badgeTxt}</span>
-                          <span style="margin-left:8px;font-size:13px;color:#888">${item.dept}</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding-top:6px;font-size:15px;font-weight:600;color:#1a1a1a">${item.product}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding-top:6px">
-                          <table cellpadding="0" cellspacing="0">
-                            <tr>
-                              <td style="padding-right:20px">
-                                <div style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.5px">UPC</div>
-                                <div style="font-size:13px;color:#555">${item.upc || '—'}</div>
-                              </td>
-                              <td style="padding-right:20px">
-                                <div style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.5px">Unit Cost</div>
-                                <div style="font-size:13px;color:#555">$${item.cost}</div>
-                              </td>
-                              <td style="padding-right:20px">
-                                <div style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.5px">Current Price</div>
-                                <div style="font-size:14px;font-weight:700;color:${currentColor}">$${item.retail} <span style="font-weight:400;font-size:12px">(${parseFloat(item.currentMargin).toFixed(1)}%)</span></div>
-                              </td>
-                              <td style="padding-right:20px">
-                                <div style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.5px">Target Range</div>
-                                <div style="font-size:13px;color:#555">${item.minTarget}% – ${item.maxTarget}%</div>
-                              </td>
-                              <td>
-                                <div style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.5px">Suggested Price</div>
-                                <div style="font-size:14px;font-weight:700;color:#2e7d32">$${item.suggestedRetail} <span style="font-weight:400;font-size:12px">(${suggestedMarginPct}%)</span></div>
-                              </td>
-                            </tr>
-                          </table>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>`;
+                rows += `<tr><td style="padding:14px 16px;border-bottom:1px solid #eee;background:${rowBg}">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr><td>
+                      <span style="display:inline-block;background:${badgeBg};color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px">${icon} ${badgeTxt}</span>
+                      <span style="margin-left:8px;font-size:13px;color:#888">${item.dept}</span>
+                    </td></tr>
+                    <tr><td style="padding-top:6px;font-size:15px;font-weight:600;color:#1a1a1a">${item.product}</td></tr>
+                    <tr><td style="padding-top:8px">
+                      <table cellpadding="0" cellspacing="0"><tr>
+                        <td style="padding-right:20px"><div style="font-size:11px;color:#999;text-transform:uppercase">UPC</div><div style="font-size:13px;color:#555">${item.upc||'—'}</div></td>
+                        <td style="padding-right:20px"><div style="font-size:11px;color:#999;text-transform:uppercase">Unit Cost</div><div style="font-size:13px;color:#555">$${item.cost}</div></td>
+                        <td style="padding-right:20px"><div style="font-size:11px;color:#999;text-transform:uppercase">Current Price</div><div style="font-size:14px;font-weight:700;color:${currentColor}">$${item.retail} <span style="font-weight:400;font-size:12px">(${parseFloat(item.currentMargin).toFixed(1)}%)</span></div></td>
+                        <td style="padding-right:20px"><div style="font-size:11px;color:#999;text-transform:uppercase">Target Range</div><div style="font-size:13px;color:#555">${item.minTarget}%–${item.maxTarget}%</div></td>
+                        <td><div style="font-size:11px;color:#999;text-transform:uppercase">Suggested Price</div><div style="font-size:14px;font-weight:700;color:#2e7d32">$${item.suggestedRetail} <span style="font-weight:400;font-size:12px">(${suggestedMarginPct}%)</span></div></td>
+                      </tr></table>
+                    </td></tr>
+                  </table>
+                </td></tr>`;
             });
-
             const moreCount = actionItems.length - topItems.length;
-            const moreRow = moreCount > 0 ? `
-                <tr><td style="padding:12px 16px;text-align:center;color:#888;font-size:13px;border-bottom:1px solid #eee">
-                  ... and ${moreCount} more item${moreCount > 1 ? 's' : ''} need attention
-                </td></tr>` : '';
-
-            return `<!DOCTYPE html>
-<html>
-<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f4f4">
+            const moreRow = moreCount > 0 ? `<tr><td style="padding:12px;text-align:center;color:#888;font-size:13px">... and ${moreCount} more item${moreCount>1?'s':''} need attention</td></tr>` : '';
+            return `<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f4f4">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:24px 0">
     <tr><td align="center">
       <table width="620" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
-
-        <!-- HEADER -->
         <tr><td style="background:linear-gradient(135deg,#667eea,#764ba2);padding:28px 32px;text-align:center">
           <div style="font-size:22px;font-weight:700;color:#fff">📊 Daily Margin Report</div>
           <div style="font-size:13px;color:rgba(255,255,255,0.85);margin-top:6px">MTG-5 RockHill &nbsp;|&nbsp; ${date}</div>
         </td></tr>
-
-        <!-- SUMMARY CARDS -->
         <tr><td style="padding:20px 24px;background:#fafafa;border-bottom:1px solid #eee">
-          <table width="100%" cellpadding="0" cellspacing="0">
-            <tr>
-              <td width="25%" align="center" style="padding:10px">
-                <div style="background:#ffebee;border-radius:8px;padding:14px 8px">
-                  <div style="font-size:28px;font-weight:800;color:#c62828">${red}</div>
-                  <div style="font-size:11px;color:#c62828;font-weight:600;margin-top:4px">🔴 RAISE PRICE</div>
-                </div>
-              </td>
-              <td width="25%" align="center" style="padding:10px">
-                <div style="background:#fff3e0;border-radius:8px;padding:14px 8px">
-                  <div style="font-size:28px;font-weight:800;color:#e65100">${yellow}</div>
-                  <div style="font-size:11px;color:#e65100;font-weight:600;margin-top:4px">🟡 LOWER PRICE</div>
-                </div>
-              </td>
-              <td width="25%" align="center" style="padding:10px">
-                <div style="background:#e8f5e9;border-radius:8px;padding:14px 8px">
-                  <div style="font-size:28px;font-weight:800;color:#2e7d32">${green}</div>
-                  <div style="font-size:11px;color:#2e7d32;font-weight:600;margin-top:4px">✅ ON TARGET</div>
-                </div>
-              </td>
-              <td width="25%" align="center" style="padding:10px">
-                <div style="background:#f3f4ff;border-radius:8px;padding:14px 8px">
-                  <div style="font-size:28px;font-weight:800;color:#5c6bc0">${allData.length}</div>
-                  <div style="font-size:11px;color:#5c6bc0;font-weight:600;margin-top:4px">📦 TOTAL ITEMS</div>
-                </div>
-              </td>
-            </tr>
-          </table>
+          <table width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td width="25%" align="center" style="padding:10px"><div style="background:#ffebee;border-radius:8px;padding:14px 8px"><div style="font-size:28px;font-weight:800;color:#c62828">${red}</div><div style="font-size:11px;color:#c62828;font-weight:600;margin-top:4px">🔴 RAISE PRICE</div></div></td>
+            <td width="25%" align="center" style="padding:10px"><div style="background:#fff3e0;border-radius:8px;padding:14px 8px"><div style="font-size:28px;font-weight:800;color:#e65100">${yellow}</div><div style="font-size:11px;color:#e65100;font-weight:600;margin-top:4px">🟡 LOWER PRICE</div></div></td>
+            <td width="25%" align="center" style="padding:10px"><div style="background:#e8f5e9;border-radius:8px;padding:14px 8px"><div style="font-size:28px;font-weight:800;color:#2e7d32">${green}</div><div style="font-size:11px;color:#2e7d32;font-weight:600;margin-top:4px">✅ ON TARGET</div></div></td>
+            <td width="25%" align="center" style="padding:10px"><div style="background:#f3f4ff;border-radius:8px;padding:14px 8px"><div style="font-size:28px;font-weight:800;color:#5c6bc0">${allData.length}</div><div style="font-size:11px;color:#5c6bc0;font-weight:600;margin-top:4px">📦 TOTAL ITEMS</div></div></td>
+          </tr></table>
         </td></tr>
-
-        <!-- ACTION ITEMS HEADER -->
-        <tr><td style="padding:16px 24px 8px;background:#fff">
-          <div style="font-size:14px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:0.5px">
-            ⚡ Priority Action Items ${actionItems.length > 20 ? '(Top 20 shown)' : ''}
-          </div>
-        </td></tr>
-
-        <!-- ITEMS -->
-        ${rows}
-        ${moreRow}
-
-        <!-- FOOTER -->
+        <tr><td style="padding:16px 24px 8px"><div style="font-size:14px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:0.5px">⚡ Priority Action Items ${actionItems.length > 20 ? '(Top 20 shown)' : ''}</div></td></tr>
+        ${rows}${moreRow}
         <tr><td style="padding:16px 24px;background:#fafafa;text-align:center;border-top:1px solid #eee">
           <div style="font-size:12px;color:#aaa">Generated ${new Date().toLocaleString()} &nbsp;|&nbsp; MTG Store Operations</div>
         </td></tr>
-
       </table>
     </td></tr>
   </table>
-</body>
-</html>`;
+</body></html>`;
         }
-        
+
         function reset() {
             fileInput.value = '';
             allData = [];
