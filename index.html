@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Margin Checker</title>
+    <title>Daily Margin Checker — MTG-5 RockHill</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
     <style>
         * {
@@ -274,6 +274,12 @@
             background: #e8f5e9;
             color: #2e7d32;
         }
+
+        .flag-skip {
+            background: #f5f5f5;
+            color: #9e9e9e;
+            font-style: italic;
+        }
         
         .action-buttons {
             display: flex;
@@ -467,6 +473,7 @@
     <div class="container">
         <header>
             <h1>📊 Daily Margin Checker</h1>
+            <p>MTG-5 RockHill &nbsp;|&nbsp; 37 Departments &nbsp;|&nbsp; Upload PURRetailLog.xls to analyze</p>
             <p>Upload your daily retail export and fix pricing instantly</p>
         </header>
         
@@ -539,36 +546,51 @@
         // Google Apps Script Deployment URL (Email Backend)
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwqdG0ZFUavZmpM8UT7pke3u7NhCPVcXWQD-LJKRjPsOKvwwiTsDO3je5J9tyEVZN5LVw/exec';
         
-        // Margin Guidelines
-        const MARGINS = {
-            'Single Beer': { min: 25, max: 30, dept: '2Beer-Single' },
-            'PKG Beer': { min: 20, max: 25, dept: '2Beer-PKG' },
-            'Wine': { min: 20, max: 25, dept: '2Wine' },
-            'Energy drink': { min: 38, max: 45, dept: '1Energy' },
-            'Non Alcohol': { min: 36, max: 44, dept: '1Non ALH' },
-            'Soda': { min: 36, max: 44, dept: '1Soda' },
-            'Water': { min: 42, max: 48, dept: '1Water/FL Water' },
-            'Candy': { min: 35, max: 42, dept: '1Candy' },
-            'Chips/Salty': { min: 35, max: 42, dept: '1Chips/Salty' },
-            'Bakery': { min: 35, max: 42, dept: '1Bakery' },
-            'Isotonic': { min: 38, max: 45, dept: '1Isotonic' },
-            'Frozen/Ice Cream': { min: 38, max: 45, dept: '1Frozen/Ice Cream' },
-            'TH Non Alh': { min: 20, max: 25, dept: '1TH Non Alh' },
-            'Non Tax Groc': { min: 33, max: 38, dept: '1Non Tax Groc' },
-            'Tax Groc': { min: 33, max: 38, dept: '2Tax Groc' },
-            'Cig Pack': { min: 8, max: 15, dept: '2Cig Pack' },
-            'Cig Carton': { min: 7, max: 10, dept: '2Cig Carton' },
-            'Cigar/Leaf': { min: 26, max: 35, dept: '2Cigar/Leaf' },
-            'E-Cigs': { min: 18, max: 25, dept: '2E-Cigs' },
-            'Dip Can': { min: 18, max: 23, dept: '2Dip Can' },
-            'Dip Roll/Tobacco': { min: 14, max: 18, dept: '2Dip Roll/Tobacco' },
-            'Nico Pouches': { min: 18, max: 24, dept: '2Nico Pouches' },
-            'Novelty-Other': { min: 50, max: 60, dept: '2Novelty-Other' },
-            'Novelty-Vape': { min: 45, max: 55, dept: '2Novelty-Vape' },
-            'Novelty-Merch': { min: 50, max: 60, dept: '2Novelty-Merch' },
-            'Health Hygiene': { min: 38, max: 44, dept: '2Health Hygiene' },
-            'Auto': { min: 33, max: 38, dept: '2Auto' }
+        // ─── MTG-5 MARGINS (Updated June 2026) ───────────────────────────
+        // skip:true = do not flag / show as ⬜ SKIP in results
+        let MARGINS = {
+            '1Candy':              { min: 35, max: 42 },
+            '1Chips/Salty':        { min: 35, max: 42 },
+            '1Bakery':             { min: 35, max: 42 },
+            '1Soda':               { min: 36, max: 44 },
+            '1Non ALH':            { min: 36, max: 44 },
+            '1Isotonic':           { min: 38, max: 45 },
+            '1Energy':             { min: 38, max: 45 },
+            '1Water/FL Water':     { min: 42, max: 48 },
+            '1Frozen / Ice Cream': { min: 37, max: 45 },
+            '1TH Non Alh':         { min: 20, max: 25 },
+            '1Non Tax Groc':       { min: 33, max: 42 },
+            '1Ice Bag':            { min: 35, max: 45 },
+            '2Tax Groc':           { min: 33, max: 42 },
+            '2Cig Pack':           { skip: true },
+            '2Cig Carton':         { skip: true },
+            '2Cigar/Leaf':         { min: 26, max: 35 },
+            '2E-Cigs':             { skip: true },
+            '2Dip Can':            { skip: true },
+            '2Dip Roll / Tobacco': { min: 14, max: 18 },
+            '2Nico Pouches':       { skip: true },
+            '2Beer-Single':        { min: 25, max: 30 },
+            '2Beer-PKG':           { min: 20, max: 25 },
+            '2Wine':               { min: 20, max: 25 },
+            '2Novelty-Vape':       { min: 45, max: 55 },
+            '2Novelty-Other':      { min: 45, max: 55 },
+            '2Novelty-Merch':      { min: 45, max: 55 },
+            '2Health Hygiene':     { min: 38, max: 44 },
+            '2Auto':               { min: 33, max: 38 },
+            '2Supplies':           { min: 27, max: 35 },
+            '3Hot Coffee':         { min: 38, max: 45 },
+            '3Hot Food':           { min: 1,  max: 2  },
+            '3Slush-Fountain':     { min: 1,  max: 2  },
+            '4Propane/Firewood':   { min: 1,  max: 2  },
+            '7Scratch Off':        { skip: true },
+            '7Online Lotto':       { skip: true },
+            '7Lotto Winner':       { skip: true }
         };
+
+        // Load margins when page loads (no JSON fetch needed — embedded above)
+        window.addEventListener('load', () => {
+            showStatus('✅ MTG-5 margins loaded — 37 departments', 'success');
+        });
         
         let allData = [];
         
@@ -636,39 +658,59 @@
         function processData(jsonData) {
             allData = jsonData.map((row, idx) => {
                 const deptName = row.DeptName || row.Department || 'Unknown';
-                const marginTarget = MARGINS[deptName] || { min: 25, max: 35 };
-                
+                const marginTarget = MARGINS[deptName] || null;
+
                 const unitCost = parseFloat(row.unitCost) || 0;
                 const salePrice = parseFloat(row.SalePrice) || 0;
                 const currentMargin = parseFloat(row.Margin) || 0;
-                
-                const costPerUnit = unitCost;
-                const midMargin = (marginTarget.min + marginTarget.max) / 2 / 100;
-                const suggestedPrice = costPerUnit / (1 - midMargin);
-                
+
+                // SKIP departments (Cigs, Lotto, E-Cigs, etc.)
+                if (marginTarget && marginTarget.skip) {
+                    return {
+                        id: idx,
+                        upc: row.SaleItemScanCode || '',
+                        product: row.ItemName || row.Product || 'Unknown',
+                        dept: deptName,
+                        category: row.CategoryName || 'N/A',
+                        cost: unitCost.toFixed(2),
+                        retail: salePrice.toFixed(2),
+                        currentMargin: currentMargin.toFixed(2),
+                        minTarget: '—',
+                        maxTarget: '—',
+                        suggestedRetail: '—',
+                        flag: 'skip',
+                        action: '⬜ SKIP'
+                    };
+                }
+
+                // Unknown department — use fallback
+                const target = marginTarget || { min: 25, max: 35 };
+                const midMargin = (target.min + target.max) / 2 / 100;
+                const suggestedPrice = unitCost > 0 ? unitCost / (1 - midMargin) : 0;
+
                 let flag = 'green';
                 let action = '✅ OK';
-                
-                if (currentMargin < marginTarget.min) {
+
+                if (currentMargin < target.min) {
                     flag = 'red';
                     action = `🔴 RAISE to $${suggestedPrice.toFixed(2)}`;
-                } else if (currentMargin > marginTarget.max) {
+                } else if (currentMargin > target.max) {
                     flag = 'yellow';
                     action = `🟡 LOWER to $${suggestedPrice.toFixed(2)}`;
                 }
-                
+
                 return {
                     id: idx,
                     upc: row.SaleItemScanCode || '',
                     product: row.ItemName || row.Product || 'Unknown',
                     dept: deptName,
                     category: row.CategoryName || 'N/A',
-                    cost: costPerUnit.toFixed(2),
+                    cost: unitCost.toFixed(2),
                     retail: salePrice.toFixed(2),
                     currentMargin: currentMargin.toFixed(2),
-                    minTarget: marginTarget.min,
-                    maxTarget: marginTarget.max,
-                    suggestedRetail: suggestedPrice.toFixed(2),
+                    minTarget: target.min,
+                    maxTarget: target.max,
+                    suggestedRetail: suggestedPrice > 0 ? suggestedPrice.toFixed(2) : '—',
                     flag: flag,
                     action: action
                 };
@@ -690,6 +732,7 @@
             const red = allData.filter(d => d.flag === 'red').length;
             const yellow = allData.filter(d => d.flag === 'yellow').length;
             const green = allData.filter(d => d.flag === 'green').length;
+            const skip = allData.filter(d => d.flag === 'skip').length;
             
             const html = `
                 <div class="card red">
@@ -705,6 +748,10 @@
                     <div class="card-value">${green}</div>
                 </div>
                 <div class="card">
+                    <div class="card-label">SKIPPED DEPTS</div>
+                    <div class="card-value">${skip}</div>
+                </div>
+                <div class="card">
                     <div class="card-label">TOTAL ITEMS</div>
                     <div class="card-value">${allData.length}</div>
                 </div>
@@ -715,12 +762,21 @@
         function renderMarginGuide() {
             let html = '';
             Object.entries(MARGINS).forEach(([dept, targets]) => {
-                html += `
-                    <div class="margin-item">
-                        <strong>${dept}</strong>
-                        <span>${targets.min}% - ${targets.max}%</span>
-                    </div>
-                `;
+                if (targets.skip) {
+                    html += `
+                        <div class="margin-item" style="opacity:0.45">
+                            <strong>${dept}</strong>
+                            <span>SKIP</span>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="margin-item">
+                            <strong>${dept}</strong>
+                            <span>${targets.min}% - ${targets.max}%</span>
+                        </div>
+                    `;
+                }
             });
             document.getElementById('marginGuide').innerHTML = html;
         }
@@ -731,6 +787,7 @@
             const showGreen = document.getElementById('filterGreen').checked;
             
             return allData.filter(d => {
+                if (d.flag === 'skip') return false; // always hide skip rows from main table
                 if (d.flag === 'red' && showRed) return true;
                 if (d.flag === 'yellow' && showYellow) return true;
                 if (d.flag === 'green' && showGreen) return true;
@@ -828,8 +885,8 @@
                 return;
             }
             
-            if (!APPS_SCRIPT_URL.includes('YOUR_DEPLOYMENT_ID')) {
-                showStatus('❌ Email service not configured. Please set up Google Apps Script first.', 'error');
+            if (!APPS_SCRIPT_URL.includes('AKfycbwqdG0ZFUavZmpM8UT7pke3u7NhCPVcXWQD')) {
+                showStatus('❌ Email service not configured', 'error');
                 return;
             }
             
@@ -874,10 +931,10 @@
             let body = `DAILY MARGIN REPORT - ${new Date().toLocaleDateString()}
 
 SUMMARY:
-- Items Below Minimum (Need Price Increase): ${red}
-- Items Above Maximum (Need Price Decrease): ${yellow}
-- Items Within Target: ${green}
-- Total Items Analyzed: ${allData.length}
+• Items Below Minimum (Need Price Increase): ${red}
+• Items Above Maximum (Need Price Decrease): ${yellow}
+• Items Within Target: ${green}
+• Total Items Analyzed: ${allData.length}
 
 PRIORITY ACTION ITEMS (Top 10):
 `;
