@@ -422,6 +422,29 @@
             margin-top: 4px;
         }
         
+        .store-btn {
+            padding: 12px 28px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            background: white;
+            color: #667eea;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .store-btn:hover {
+            background: #f0f2ff;
+        }
+
+        .store-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+        }
+
         .scroll-note {
             color: #999;
             font-size: 0.9em;
@@ -471,6 +494,27 @@
         </header>
         
         <div class="upload-section">
+
+            <!-- STORE SELECTOR -->
+            <div style="margin-bottom:24px">
+                <label style="display:block;font-weight:700;font-size:1em;color:#333;margin-bottom:10px">
+                    🏪 Step 1 — Select Store
+                </label>
+                <div style="display:flex;gap:12px;flex-wrap:wrap">
+                    <button class="store-btn" id="btn-mtg5" onclick="selectStore('mtg5')">
+                        🏬 MTG-5 RockHill
+                    </button>
+                    <button class="store-btn" id="btn-kc9" onclick="selectStore('kc9')">
+                        🏬 KC Mart #09
+                    </button>
+                </div>
+                <div id="storeLabel" style="margin-top:10px;font-size:0.9em;color:#888">No store selected</div>
+            </div>
+
+            <!-- UPLOAD ZONE -->
+            <label style="display:block;font-weight:700;font-size:1em;color:#333;margin-bottom:10px">
+                📁 Step 2 — Upload Invoice File
+            </label>
             <div class="upload-zone" id="uploadZone">
                 <div class="upload-text">
                     <div class="upload-icon">📁</div>
@@ -483,7 +527,7 @@
         </div>
         
         <div class="email-section" id="emailSection">
-            <h3>📧 Email Results</h3>
+            <h3>📧 Email Results — <span id="emailStoreLabel" style="color:#667eea;font-size:0.9em"></span></h3>
             <div class="email-inputs">
                 <input type="email" id="emailTo" placeholder="Enter recipient email (or leave empty for your email)" />
                 <input type="text" id="emailSubject" placeholder="Email subject" value="Daily Margin Report" />
@@ -539,49 +583,97 @@
         // Google Apps Script Deployment URL (Email Backend)
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwqdG0ZFUavZmpM8UT7pke3u7NhCPVcXWQD-LJKRjPsOKvwwiTsDO3je5J9tyEVZN5LVw/exec';
         
-        // ── MTG-5 RockHill Margin Targets (embedded — no external file needed) ──
-        // skip:true = department is excluded from margin checking
-        const MARGINS = {
-            '1Candy':              { min: 35, max: 42 },
-            '1Chips/Salty':        { min: 35, max: 42 },
-            '1Bakery':             { min: 35, max: 42 },
-            '1Soda':               { min: 36, max: 44 },
-            '1Non ALH':            { min: 36, max: 44 },
-            '1Isotonic':           { min: 38, max: 45 },
-            '1Energy':             { min: 38, max: 45 },
-            '1Water/FL Water':     { min: 42, max: 48 },
-            '1Frozen / Ice Cream': { min: 37, max: 45 },
-            '1TH Non Alh':         { min: 20, max: 25 },
-            '1Non Tax Groc':       { min: 33, max: 42 },
-            '1Ice Bag':            { min: 35, max: 45 },
-            '2Tax Groc':           { min: 33, max: 42 },
-            '2Cig Pack':           { skip: true },
-            '2Cig Carton':         { skip: true },
-            '2Cigar/Leaf':         { min: 26, max: 35 },
-            '2E-Cigs':             { skip: true },
-            '2Dip Can':            { skip: true },
-            '2Dip Roll / Tobacco': { min: 14, max: 18 },
-            '2Nico Pouches':       { skip: true },
-            '2Beer-Single':        { min: 25, max: 30 },
-            '2Beer-PKG':           { min: 20, max: 25 },
-            '2Wine':               { min: 20, max: 25 },
-            '2Novelty-Vape':       { min: 45, max: 55 },
-            '2Novelty-Other':      { min: 45, max: 55 },
-            '2Novelty-Merch':      { min: 45, max: 55 },
-            '2Health Hygiene':     { min: 38, max: 44 },
-            '2Auto':               { min: 33, max: 38 },
-            '2Supplies':           { min: 27, max: 35 },
-            '3Hot Coffee':         { min: 38, max: 45 },
-            '3Hot Food':           { min: 1,  max: 2  },
-            '3Slush-Fountain':     { min: 1,  max: 2  },
-            '4Propane/Firewood':   { min: 1,  max: 2  },
-            '7Scratch Off':        { skip: true },
-            '7Online Lotto':       { skip: true },
-            '7Lotto Winner':       { skip: true }
+        // ── STORE MARGIN TARGETS ─────────────────────────────────────────
+        const STORE_MARGINS = {
+
+            'mtg5': {
+                name: 'MTG-5 RockHill',
+                margins: {
+                    '1Candy':              { min: 35, max: 42 },
+                    '1Chips/Salty':        { min: 35, max: 42 },
+                    '1Bakery':             { min: 35, max: 42 },
+                    '1Soda':               { min: 36, max: 44 },
+                    '1Non ALH':            { min: 36, max: 44 },
+                    '1Isotonic':           { min: 38, max: 45 },
+                    '1Energy':             { min: 38, max: 45 },
+                    '1Water/FL Water':     { min: 42, max: 48 },
+                    '1Frozen / Ice Cream': { min: 37, max: 45 },
+                    '1TH Non Alh':         { min: 20, max: 25 },
+                    '1Non Tax Groc':       { min: 33, max: 42 },
+                    '1Ice Bag':            { min: 35, max: 45 },
+                    '2Tax Groc':           { min: 33, max: 42 },
+                    '2Cig Pack':           { skip: true },
+                    '2Cig Carton':         { skip: true },
+                    '2Cigar/Leaf':         { min: 26, max: 35 },
+                    '2E-Cigs':             { skip: true },
+                    '2Dip Can':            { skip: true },
+                    '2Dip Roll / Tobacco': { min: 14, max: 18 },
+                    '2Nico Pouches':       { skip: true },
+                    '2Beer-Single':        { min: 25, max: 30 },
+                    '2Beer-PKG':           { min: 20, max: 25 },
+                    '2Wine':               { min: 20, max: 25 },
+                    '2Novelty-Vape':       { min: 45, max: 55 },
+                    '2Novelty-Other':      { min: 45, max: 55 },
+                    '2Novelty-Merch':      { min: 45, max: 55 },
+                    '2Health Hygiene':     { min: 38, max: 44 },
+                    '2Auto':               { min: 33, max: 38 },
+                    '2Supplies':           { min: 27, max: 35 },
+                    '3Hot Coffee':         { min: 38, max: 45 },
+                    '3Hot Food':           { min: 1,  max: 2  },
+                    '3Slush-Fountain':     { min: 1,  max: 2  },
+                    '4Propane/Firewood':   { min: 1,  max: 2  },
+                    '7Scratch Off':        { skip: true },
+                    '7Online Lotto':       { skip: true },
+                    '7Lotto Winner':       { skip: true }
+                }
+            },
+
+            'kc9': {
+                name: 'KC Mart #09',
+                margins: {
+                    'Candy':               { min: 35, max: 42 },
+                    'Snacks':              { min: 35, max: 42 },
+                    'Chips':               { min: 35, max: 42 },
+                    'PKG Bakery':          { min: 35, max: 42 },
+                    'Soda':                { min: 36, max: 44 },
+                    'Non Alcohol':         { min: 36, max: 44 },
+                    'Cold Food':           { min: 38, max: 45 },
+                    'Energy drink':        { min: 38, max: 45 },
+                    'Non Tax Grocery':     { min: 35, max: 42 },
+                    'Ice Cream':           { min: 37, max: 45 },
+                    'TH Non Alcohol':      { min: 20, max: 25 },
+                    'Grocery':             { min: 35, max: 42 },
+                    'Ice Bag':             { min: 35, max: 45 },
+                    'CIGARETTE PK':        { skip: true },
+                    'Cig Carton':          { skip: true },
+                    'Cigar / Leaf':        { min: 26, max: 35 },
+                    'E-Cig':               { skip: true },
+                    'Dip Can':             { skip: true },
+                    'Dip Roll':            { min: 14, max: 18 },
+                    'Tobacco':             { min: 26, max: 35 },
+                    'Single Beer':         { min: 25, max: 30 },
+                    'PKG Beer':            { min: 20, max: 25 },
+                    'Wine':                { min: 20, max: 25 },
+                    'Vape Novelty':        { min: 45, max: 55 },
+                    'Novelty':             { min: 45, max: 55 },
+                    'HBA':                 { min: 38, max: 44 },
+                    'Auto':                { min: 33, max: 38 },
+                    'Propane':             { min: 1,  max: 2  },
+                    'Instant / Scratchoff':{ skip: true },
+                    'Online Lotto':        { skip: true },
+                    'Lotto Winner':        { skip: true }
+                }
+            }
+
         };
 
+        // Active store margins — set when user picks a store
+        let MARGINS = {};
+        let SELECTED_STORE = '';
+
         window.addEventListener('load', () => {
-            showStatus('✅ MTG-5 margins loaded — 37 departments ready', 'success');
+            // Default — no store selected yet
+            showStatus('👆 Please select a store above before uploading', 'info');
         });
         
         let allData = [];
@@ -620,6 +712,10 @@
         }
         
         function handleFileUpload(file) {
+            if (!SELECTED_STORE) {
+                showStatus('⚠️ Please select a store first before uploading!', 'error');
+                return;
+            }
             const loading = document.getElementById('loading');
             loading.classList.add('show');
             
@@ -647,6 +743,39 @@
             reader.readAsArrayBuffer(file);
         }
         
+        // ── Store selector ──────────────────────────────────────────────
+        function selectStore(storeKey) {
+            const store = STORE_MARGINS[storeKey];
+            if (!store) return;
+
+            SELECTED_STORE = storeKey;
+            MARGINS = store.margins;
+
+            // Update button states
+            document.querySelectorAll('.store-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + storeKey).classList.add('active');
+            document.getElementById('storeLabel').innerHTML =
+                `✅ <strong>${store.name}</strong> selected — ${Object.keys(store.margins).length} departments loaded`;
+            document.getElementById('storeLabel').style.color = '#2e7d32';
+            const emailStoreLbl = document.getElementById('emailStoreLabel');
+            if (emailStoreLbl) emailStoreLbl.textContent = store.name;
+
+            // Update email subject
+            document.getElementById('emailSubject').value = `Daily Margin Report — ${store.name}`;
+
+            showStatus(`✅ ${store.name} margins loaded`, 'success');
+
+            // Reset results if any
+            allData = [];
+            document.getElementById('resultsSection').classList.remove('show');
+            document.getElementById('emailSection').classList.remove('show');
+        }
+
+        // Round price UP to nearest $0.05
+        function roundToNickel(price) {
+            return (Math.ceil(price * 20) / 20).toFixed(2);
+        }
+
         function processData(jsonData) {
             allData = jsonData.map((row, idx) => {
                 const deptName    = row.DeptName || row.Department || 'Unknown';
@@ -682,10 +811,10 @@
                 let flag = 'green', action = '✅ OK';
                 if (currentMargin < target.min) {
                     flag = 'red';
-                    action = `🔴 RAISE to $${suggestedPrice.toFixed(2)}`;
+                    action = `🔴 RAISE to $${roundToNickel(suggestedPrice)}`;
                 } else if (currentMargin > target.max) {
                     flag = 'yellow';
-                    action = `🟡 LOWER to $${suggestedPrice.toFixed(2)}`;
+                    action = `🟡 LOWER to $${roundToNickel(suggestedPrice)}`;
                 }
 
                 return {
@@ -695,7 +824,7 @@
                     retail: salePrice.toFixed(2),
                     currentMargin: currentMargin.toFixed(2),
                     minTarget: target.min, maxTarget: target.max,
-                    suggestedRetail: suggestedPrice > 0 ? suggestedPrice.toFixed(2) : '—',
+                    suggestedRetail: suggestedPrice > 0 ? roundToNickel(suggestedPrice) : '—',
                     flag, action
                 };
             });
@@ -713,11 +842,16 @@
         }
         
         function renderSummary() {
+            const storeName = STORE_MARGINS[SELECTED_STORE] ? STORE_MARGINS[SELECTED_STORE].name : '';
             const red    = allData.filter(d => d.flag === 'red').length;
             const yellow = allData.filter(d => d.flag === 'yellow').length;
             const green  = allData.filter(d => d.flag === 'green').length;
             const skip   = allData.filter(d => d.flag === 'skip').length;
             document.getElementById('summaryCards').innerHTML = `
+                ${storeName ? `<div class="card" style="grid-column:1/-1;background:linear-gradient(135deg,#667eea,#764ba2);color:white;text-align:center;padding:14px 20px">
+                    <div style="font-size:1.2em;font-weight:700">🏬 ${storeName}</div>
+                    <div style="font-size:0.85em;opacity:0.85;margin-top:4px">${new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+                </div>` : ''}
                 <div class="card red">
                     <div class="card-label">🔴 RAISE PRICE</div>
                     <div class="card-value">${red}</div>
