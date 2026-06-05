@@ -539,55 +539,50 @@
         // Google Apps Script Deployment URL (Email Backend)
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwqdG0ZFUavZmpM8UT7pke3u7NhCPVcXWQD-LJKRjPsOKvwwiTsDO3je5J9tyEVZN5LVw/exec';
         
-        // Load margins from external JSON file
-        let MARGINS = {};
-        
-        async function loadMargins() {
-            try {
-                const response = await fetch('margins.json');
-                const data = await response.json();
-                MARGINS = data.margins;
-                showStatus('✅ Margins loaded successfully', 'success');
-            } catch (error) {
-                showStatus('⚠️ Warning: Could not load margins.json, using defaults', 'info');
-                loadDefaultMargins();
-            }
-        }
-        
-        function loadDefaultMargins() {
-            MARGINS = {
-                'Single Beer': { min: 25, max: 30 },
-                'PKG Beer': { min: 20, max: 25 },
-                'Wine': { min: 20, max: 25 },
-                'Energy drink': { min: 38, max: 45 },
-                'Non Alcohol': { min: 36, max: 44 },
-                'Soda': { min: 36, max: 44 },
-                'Water': { min: 42, max: 48 },
-                'Candy': { min: 35, max: 42 },
-                'Chips/Salty': { min: 35, max: 42 },
-                'Bakery': { min: 35, max: 42 },
-                'Isotonic': { min: 38, max: 45 },
-                'Frozen/Ice Cream': { min: 38, max: 45 },
-                'TH Non Alh': { min: 20, max: 25 },
-                'Non Tax Groc': { min: 33, max: 38 },
-                'Tax Groc': { min: 33, max: 38 },
-                'Cig Pack': { min: 8, max: 15 },
-                'Cig Carton': { min: 7, max: 10 },
-                'Cigar/Leaf': { min: 26, max: 35 },
-                'E-Cigs': { min: 18, max: 25 },
-                'Dip Can': { min: 18, max: 23 },
-                'Dip Roll/Tobacco': { min: 14, max: 18 },
-                'Nico Pouches': { min: 18, max: 24 },
-                'Novelty-Other': { min: 50, max: 60 },
-                'Novelty-Vape': { min: 45, max: 55 },
-                'Novelty-Merch': { min: 50, max: 60 },
-                'Health Hygiene': { min: 38, max: 44 },
-                'Auto': { min: 33, max: 38 }
-            };
-        }
-        
-        // Load margins when page loads
-        window.addEventListener('load', loadMargins);
+        // ── MTG-5 RockHill Margin Targets (embedded — no external file needed) ──
+        // skip:true = department is excluded from margin checking
+        const MARGINS = {
+            '1Candy':              { min: 35, max: 42 },
+            '1Chips/Salty':        { min: 35, max: 42 },
+            '1Bakery':             { min: 35, max: 42 },
+            '1Soda':               { min: 36, max: 44 },
+            '1Non ALH':            { min: 36, max: 44 },
+            '1Isotonic':           { min: 38, max: 45 },
+            '1Energy':             { min: 38, max: 45 },
+            '1Water/FL Water':     { min: 42, max: 48 },
+            '1Frozen / Ice Cream': { min: 37, max: 45 },
+            '1TH Non Alh':         { min: 20, max: 25 },
+            '1Non Tax Groc':       { min: 33, max: 42 },
+            '1Ice Bag':            { min: 35, max: 45 },
+            '2Tax Groc':           { min: 33, max: 42 },
+            '2Cig Pack':           { skip: true },
+            '2Cig Carton':         { skip: true },
+            '2Cigar/Leaf':         { min: 26, max: 35 },
+            '2E-Cigs':             { skip: true },
+            '2Dip Can':            { skip: true },
+            '2Dip Roll / Tobacco': { min: 14, max: 18 },
+            '2Nico Pouches':       { skip: true },
+            '2Beer-Single':        { min: 25, max: 30 },
+            '2Beer-PKG':           { min: 20, max: 25 },
+            '2Wine':               { min: 20, max: 25 },
+            '2Novelty-Vape':       { min: 45, max: 55 },
+            '2Novelty-Other':      { min: 45, max: 55 },
+            '2Novelty-Merch':      { min: 45, max: 55 },
+            '2Health Hygiene':     { min: 38, max: 44 },
+            '2Auto':               { min: 33, max: 38 },
+            '2Supplies':           { min: 27, max: 35 },
+            '3Hot Coffee':         { min: 38, max: 45 },
+            '3Hot Food':           { min: 1,  max: 2  },
+            '3Slush-Fountain':     { min: 1,  max: 2  },
+            '4Propane/Firewood':   { min: 1,  max: 2  },
+            '7Scratch Off':        { skip: true },
+            '7Online Lotto':       { skip: true },
+            '7Lotto Winner':       { skip: true }
+        };
+
+        window.addEventListener('load', () => {
+            showStatus('✅ MTG-5 margins loaded — 37 departments ready', 'success');
+        });
         
         let allData = [];
         
@@ -654,46 +649,54 @@
         
         function processData(jsonData) {
             allData = jsonData.map((row, idx) => {
-                const deptName = row.DeptName || row.Department || 'Unknown';
-                const marginTarget = MARGINS[deptName] || { min: 25, max: 35 };
-                
-                const caseCost = parseFloat(row.unitCost) || 0;
-                const saleQty = parseFloat(row.SaleQty) || 1;
-                const costPerUnit = caseCost / saleQty;  // ✅ unitCost ÷ SaleQty = per-unit cost
-                const salePrice = parseFloat(row.SalePrice) || 0;
-                // Recalculate margin using true per-unit cost
-                const currentMargin = salePrice > 0 ? ((salePrice - costPerUnit) / salePrice) * 100 : 0;
+                const deptName    = row.DeptName || row.Department || 'Unknown';
+                const marginTarget = MARGINS[deptName] || null;
 
-                const midMargin = (marginTarget.min + marginTarget.max) / 2 / 100;
-                const suggestedPrice = costPerUnit / (1 - midMargin);
-                
-                let flag = 'green';
-                let action = '✅ OK';
-                
-                if (currentMargin < marginTarget.min) {
+                const caseCost   = parseFloat(row.unitCost)  || 0;
+                const saleQty    = parseFloat(row.SaleQty)   || 1;
+                const costPerUnit = caseCost / saleQty;
+                const salePrice  = parseFloat(row.SalePrice) || 0;
+                const currentMargin = salePrice > 0 ? ((salePrice - costPerUnit) / salePrice) * 100 : 0;
+                const product    = row.SaleItemName || row.ItemName || 'Unknown';
+                const upc        = row.SaleItemScanCode || '';
+
+                // ── SKIP departments (Cigs, Lotto, E-Cigs etc.) ──
+                if (marginTarget && marginTarget.skip) {
+                    return {
+                        id: idx, upc, product, dept: deptName,
+                        caseCost: caseCost.toFixed(2), saleQty,
+                        cost: costPerUnit.toFixed(2),
+                        retail: salePrice.toFixed(2),
+                        currentMargin: currentMargin.toFixed(2),
+                        minTarget: '—', maxTarget: '—',
+                        suggestedRetail: '—',
+                        flag: 'skip', action: '⬜ SKIP'
+                    };
+                }
+
+                // ── Unknown dept — use fallback ──
+                const target = marginTarget || { min: 25, max: 35 };
+                const midMargin = (target.min + target.max) / 2 / 100;
+                const suggestedPrice = costPerUnit > 0 ? costPerUnit / (1 - midMargin) : 0;
+
+                let flag = 'green', action = '✅ OK';
+                if (currentMargin < target.min) {
                     flag = 'red';
                     action = `🔴 RAISE to $${suggestedPrice.toFixed(2)}`;
-                } else if (currentMargin > marginTarget.max) {
+                } else if (currentMargin > target.max) {
                     flag = 'yellow';
                     action = `🟡 LOWER to $${suggestedPrice.toFixed(2)}`;
                 }
-                
+
                 return {
-                    id: idx,
-                    upc: row.SaleItemScanCode || '',
-                    product: row.SaleItemName || row.ItemName || row.Product || 'Unknown',
-                    dept: deptName,
-                    category: row.CategoryName || 'N/A',
-                    caseCost: caseCost.toFixed(2),
-                    saleQty: saleQty,
-                    cost: costPerUnit.toFixed(2),       // per-unit cost
+                    id: idx, upc, product, dept: deptName,
+                    caseCost: caseCost.toFixed(2), saleQty,
+                    cost: costPerUnit.toFixed(2),
                     retail: salePrice.toFixed(2),
                     currentMargin: currentMargin.toFixed(2),
-                    minTarget: marginTarget.min,
-                    maxTarget: marginTarget.max,
-                    suggestedRetail: suggestedPrice.toFixed(2),
-                    flag: flag,
-                    action: action
+                    minTarget: target.min, maxTarget: target.max,
+                    suggestedRetail: suggestedPrice > 0 ? suggestedPrice.toFixed(2) : '—',
+                    flag, action
                 };
             });
             
@@ -710,53 +713,56 @@
         }
         
         function renderSummary() {
-            const red = allData.filter(d => d.flag === 'red').length;
+            const red    = allData.filter(d => d.flag === 'red').length;
             const yellow = allData.filter(d => d.flag === 'yellow').length;
-            const green = allData.filter(d => d.flag === 'green').length;
-            
-            const html = `
+            const green  = allData.filter(d => d.flag === 'green').length;
+            const skip   = allData.filter(d => d.flag === 'skip').length;
+            document.getElementById('summaryCards').innerHTML = `
                 <div class="card red">
-                    <div class="card-label">BELOW MIN (Raise Price)</div>
+                    <div class="card-label">🔴 RAISE PRICE</div>
                     <div class="card-value">${red}</div>
                 </div>
                 <div class="card yellow">
-                    <div class="card-label">ABOVE MAX (Lower Price)</div>
+                    <div class="card-label">🟡 LOWER PRICE</div>
                     <div class="card-value">${yellow}</div>
                 </div>
                 <div class="card green">
-                    <div class="card-label">WITHIN TARGET</div>
+                    <div class="card-label">✅ ON TARGET</div>
                     <div class="card-value">${green}</div>
                 </div>
                 <div class="card">
-                    <div class="card-label">TOTAL ITEMS</div>
-                    <div class="card-value">${allData.length}</div>
+                    <div class="card-label">⬜ SKIPPED DEPTS</div>
+                    <div class="card-value">${skip}</div>
                 </div>
-            `;
-            document.getElementById('summaryCards').innerHTML = html;
+                <div class="card">
+                    <div class="card-label">📦 TOTAL ITEMS</div>
+                    <div class="card-value">${allData.length}</div>
+                </div>`;
         }
         
         function renderMarginGuide() {
             let html = '';
             Object.entries(MARGINS).forEach(([dept, targets]) => {
-                html += `
-                    <div class="margin-item">
-                        <strong>${dept}</strong>
-                        <span>${targets.min}% - ${targets.max}%</span>
-                    </div>
-                `;
+                if (targets.skip) {
+                    html += `<div class="margin-item" style="opacity:0.4;border-left-color:#ccc">
+                        <strong>${dept}</strong><span>⬜ SKIP</span></div>`;
+                } else {
+                    html += `<div class="margin-item">
+                        <strong>${dept}</strong><span>${targets.min}% – ${targets.max}%</span></div>`;
+                }
             });
             document.getElementById('marginGuide').innerHTML = html;
         }
         
         function getFilteredData() {
-            const showRed = document.getElementById('filterRed').checked;
+            const showRed    = document.getElementById('filterRed').checked;
             const showYellow = document.getElementById('filterYellow').checked;
-            const showGreen = document.getElementById('filterGreen').checked;
-            
+            const showGreen  = document.getElementById('filterGreen').checked;
             return allData.filter(d => {
-                if (d.flag === 'red' && showRed) return true;
+                if (d.flag === 'skip')   return false;  // never show skip rows
+                if (d.flag === 'red'    && showRed)    return true;
                 if (d.flag === 'yellow' && showYellow) return true;
-                if (d.flag === 'green' && showGreen) return true;
+                if (d.flag === 'green'  && showGreen)  return true;
                 return false;
             });
         }
