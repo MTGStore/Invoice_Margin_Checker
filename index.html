@@ -872,49 +872,78 @@
             try {
                 const htmlBody = generateHtmlEmailBody(red, yellow, green, data);
 
-                // Use hidden iframe POST — avoids CORS block AND URL length limits
-                await new Promise((resolve) => {
-                    const iframe = document.createElement('iframe');
-                    iframe.name = 'emailFrame_' + Date.now();
-                    iframe.style.display = 'none';
-                    document.body.appendChild(iframe);
-
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = APPS_SCRIPT_URL;
-                    form.target = iframe.name;
-                    form.style.display = 'none';
-
-                    const fields = {
-                        to: emailTo,
-                        subject: subject,
-                        body: 'See HTML email.',
-                        htmlBody: htmlBody
-                    };
-
-                    Object.entries(fields).forEach(([key, val]) => {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = key;
-                        input.value = val;
-                        form.appendChild(input);
-                    });
-
-                    document.body.appendChild(form);
-                    form.submit();
-
-                    // Apps Script processes async — wait 5s then confirm
-                    setTimeout(() => {
-                        form.remove();
-                        iframe.remove();
-                        resolve();
-                    }, 5000);
+                // Store email data in sessionStorage, then open Apps Script in new tab
+                // Apps Script reads it via a shared key and sends the email
+                const emailKey = 'mtg_email_' + Date.now();
+                const emailData = JSON.stringify({
+                    to: emailTo,
+                    subject: subject,
+                    body: 'See HTML email.',
+                    htmlBody: htmlBody
                 });
 
-                showStatus(`✅ Email sent to ${emailTo}! Check your inbox.`, 'success');
+                // Use JSONP approach — pass small params via URL, htmlBody via encoded chunk
+                // Split htmlBody into compressed plain summary for GET (avoids size limit)
+                const summaryLines = [];
+                const actionItems = allData.filter(d => d.flag !== 'green' && d.flag !== 'skip');
+                actionItems.slice(0, 30).forEach(item => {
+                    const sugPct = item.suggestedRetail !== '—' && parseFloat(item.cost) > 0
+                        ? (((parseFloat(item.suggestedRetail) - parseFloat(item.cost)) / parseFloat(item.suggestedRetail)) * 100).toFixed(1)
+                        : '—';
+                    summaryLines.push(
+                        item.flag === 'red'
+                        ? `RAISE|${item.product}|${item.upc}|${item.dept}|$${item.cost}|$${item.retail}|${parseFloat(item.currentMargin).toFixed(1)}%|$${item.suggestedRetail}|${sugPct}%`
+                        : `LOWER|${item.product}|${item.upc}|${item.dept}|$${item.cost}|$${item.retail}|${parseFloat(item.currentMargin).toFixed(1)}%|$${item.suggestedRetail}|${sugPct}%`
+                    );
+                });
+
+                const redCount   = allData.filter(d => d.flag === 'red').length;
+                const yelCount   = allData.filter(d => d.flag === 'yellow').length;
+                const grnCount   = allData.filter(d => d.flag === 'green').length;
+                const totalCount = allData.length;
+
+                const params = new URLSearchParams({
+                    to:       emailTo,
+                    subject:  subject,
+                    red:      redCount,
+                    yellow:   yelCount,
+                    green:    grnCount,
+                    total:    totalCount,
+                    items:    summaryLines.join('||'),
+                    callback: 'handleEmailResponse'
+                });
+
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    const timeout = setTimeout(() => {
+                        script.remove();
+                        reject(new Error('Request timed out — check your Apps Script deployment'));
+                    }, 15000);
+
+                    window.handleEmailResponse = (result) => {
+                        clearTimeout(timeout);
+                        script.remove();
+                        delete window.handleEmailResponse;
+                        if (result.success) {
+                            resolve();
+                        } else {
+                            reject(new Error(result.error || 'Apps Script returned an error'));
+                        }
+                    };
+
+                    script.src = APPS_SCRIPT_URL + '?' + params.toString();
+                    script.onerror = () => {
+                        clearTimeout(timeout);
+                        script.remove();
+                        reject(new Error('Could not reach Apps Script — check deployment URL'));
+                    };
+                    document.head.appendChild(script);
+                });
+
+                showStatus(`✅ Email confirmed sent to ${emailTo}!`, 'success');
 
             } catch (error) {
-                showStatus(`❌ Error: ${error.message}`, 'error');
+                showStatus(`❌ ${error.message}`, 'error');
                 console.error(error);
             } finally {
                 emailBtn.disabled = false;
